@@ -15,7 +15,7 @@ export default function VenuePanel({ venue, onClose }) {
     <aside className={`venue-panel${venue ? ' venue-panel--open' : ''}`} id="venue-panel">
       <div className="venue-panel__header">
         <h2>📍 {venue.name}</h2>
-        <button className="venue-panel__close" onClick={onClose} id="venue-panel-close">
+        <button className="venue-panel__close" onClick={onClose} id="venue-panel-close" title="Close panel">
           ✕
         </button>
       </div>
@@ -28,15 +28,15 @@ export default function VenuePanel({ venue, onClose }) {
         {/* Info grid */}
         <div className="venue-panel__info-grid">
           <div className="venue-panel__info-item">
-            <span>Building</span>
+            <span>🏢 Building</span>
             <span>{venue.building}</span>
           </div>
           <div className="venue-panel__info-item">
-            <span>Floor</span>
+            <span>🏗️ Floor</span>
             <span>{venue.floor}</span>
           </div>
-          <div className="venue-panel__info-item">
-            <span>Landmark</span>
+          <div className="venue-panel__info-item venue-panel__info-item--full">
+            <span>🧭 Landmark</span>
             <span>{venue.landmark}</span>
           </div>
         </div>
