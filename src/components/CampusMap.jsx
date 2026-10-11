@@ -1,17 +1,39 @@
 /**
- * CampusMap.jsx – Schematic SVG campus map with animated pin
+ * CampusMap.jsx – Schematic SVG campus map with route + animated pin
  *
  * Owner: B
- * Props: pinX (0-100%), pinY (0-100%), venueName
+ * Props:
+ *   pinX (0-100%), pinY (0-100%) — destination pin position
+ *   venueName — label for the destination
+ *   venueId — used to look up the predefined route
  */
 
 import React from 'react';
+import { venues } from '../data/venues';
 
-export default function CampusMap({ pinX, pinY, venueName }) {
+// Build the route polyline points string from a venue's route array
+function getRoutePoints(venueId) {
+  if (!venueId) return null;
+  const venue = venues.find((v) => v.id === venueId);
+  if (!venue || !venue.route || venue.route.length < 2) return null;
+  return venue.route.map(([x, y]) => `${x},${y}`).join(' ');
+}
+
+// Main Gate SVG coords (centre of the gate rect)
+const GATE_X = 400;
+const GATE_Y = 469;
+
+export default function CampusMap({ pinX, pinY, venueName, venueId }) {
+  const routePoints = getRoutePoints(venueId);
+  // Get the last route point for the destination marker (SVG coords)
+  const venue = venueId ? venues.find((v) => v.id === venueId) : null;
+  const destPoint = venue?.route?.length ? venue.route[venue.route.length - 1] : null;
+
   return (
     <div className="campus-map" id="campus-map">
       <svg
         viewBox="0 0 800 500"
+        preserveAspectRatio="xMidYMid meet"
         xmlns="http://www.w3.org/2000/svg"
         style={{ width: '100%', height: '100%', display: 'block' }}
       >
@@ -26,11 +48,14 @@ export default function CampusMap({ pinX, pinY, venueName }) {
             <stop offset="0%" stopColor="rgba(29,209,161,0.06)" />
             <stop offset="100%" stopColor="rgba(29,209,161,0.02)" />
           </linearGradient>
-          {/* Pin glow */}
-          <radialGradient id="pin-glow">
-            <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
-            <stop offset="100%" stopColor="rgba(255,107,107,0)" />
-          </radialGradient>
+          {/* Route glow filter */}
+          <filter id="route-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Background */}
@@ -90,7 +115,6 @@ export default function CampusMap({ pinX, pinY, venueName }) {
         <rect x="405" y="345" width="145" height="75" rx="8" fill="url(#open-grad)" stroke="#2e4a48" strokeWidth="1.2" strokeDasharray="5 3" />
         <text x="477" y="383" textAnchor="middle" fill="#3d8b7a" fontSize="9" fontWeight="600" fontFamily="Inter, sans-serif">Sports</text>
         <text x="477" y="396" textAnchor="middle" fill="#3d8b7a" fontSize="9" fontWeight="600" fontFamily="Inter, sans-serif">Ground</text>
-        {/* Track markings */}
         <ellipse cx="477" cy="388" rx="55" ry="25" fill="none" stroke="#2e4a48" strokeWidth="0.5" opacity="0.5" />
 
         {/* ── Hostel ── */}
@@ -100,16 +124,10 @@ export default function CampusMap({ pinX, pinY, venueName }) {
         {/* ── Library ── */}
         <rect x="155" y="290" width="95" height="55" rx="5" fill="url(#bldg-grad)" stroke="#2e3a55" strokeWidth="1.2" />
         <text x="202" y="320" textAnchor="middle" fill="#7a87a8" fontSize="9" fontWeight="600" fontFamily="Inter, sans-serif">Library</text>
-        <text x="202" y="333" textAnchor="middle" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">📚</text>
 
         {/* ── Canteen ── */}
         <rect x="265" y="355" width="85" height="45" rx="5" fill="url(#bldg-grad)" stroke="#2e3a55" strokeWidth="1.2" />
         <text x="307" y="380" textAnchor="middle" fill="#7a87a8" fontSize="9" fontWeight="600" fontFamily="Inter, sans-serif">Canteen</text>
-        <text x="307" y="392" textAnchor="middle" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">🍴</text>
-
-        {/* ── Parking ── */}
-        <rect x="600" y="380" width="80" height="40" rx="5" fill="url(#bldg-grad)" stroke="#2e3a55" strokeWidth="0.8" opacity="0.6" />
-        <text x="640" y="404" textAnchor="middle" fill="#505b78" fontSize="8" fontFamily="Inter, sans-serif">Parking</text>
 
         {/* ── Trees / greenery ── */}
         {[
@@ -133,27 +151,129 @@ export default function CampusMap({ pinX, pinY, venueName }) {
           <polygon points="0,14 -3,8 3,8" fill="#4a5678" opacity="0.5" />
         </g>
 
-        {/* ── Legend border ── */}
-        <rect x="15" y="440" width="160" height="45" rx="6" fill="rgba(17,24,39,0.8)" stroke="#2e3a55" strokeWidth="0.8" />
+        {/* ══════════════════════════════════════════════════
+            ROUTE OVERLAY — only rendered when a venue is selected
+            ══════════════════════════════════════════════════ */}
+        {routePoints && (
+          <g className="campus-map__route-group">
+            {/* Route glow (background) */}
+            <polyline
+              points={routePoints}
+              fill="none"
+              stroke="rgba(108,92,231,0.3)"
+              strokeWidth="10"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              filter="url(#route-glow)"
+            />
+            {/* Route solid line */}
+            <polyline
+              points={routePoints}
+              fill="none"
+              stroke="#6c5ce7"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity="0.9"
+            />
+            {/* Route animated dash overlay */}
+            <polyline
+              className="campus-map__route-dash"
+              points={routePoints}
+              fill="none"
+              stroke="#a78bfa"
+              strokeWidth="3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray="8 12"
+            />
+
+            {/* ── START marker (Main Gate) ── */}
+            <g>
+              <circle cx={GATE_X} cy={GATE_Y - 10} r="8" fill="#6c5ce7" opacity="0.9" />
+              <circle cx={GATE_X} cy={GATE_Y - 10} r="4" fill="#fff" />
+              <rect x={GATE_X - 28} y={GATE_Y - 38} width="56" height="18" rx="4" fill="rgba(108,92,231,0.9)" />
+              <text x={GATE_X} y={GATE_Y - 26} textAnchor="middle" fill="#fff" fontSize="8" fontWeight="700" fontFamily="Inter, sans-serif">
+                START
+              </text>
+            </g>
+
+            {/* ── DESTINATION marker ── */}
+            {destPoint && (
+              <g>
+                <circle cx={destPoint[0]} cy={destPoint[1]} r="10" fill="rgba(255,107,107,0.25)">
+                  <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+                </circle>
+                <circle cx={destPoint[0]} cy={destPoint[1]} r="6" fill="#ff6b6b" />
+                <circle cx={destPoint[0]} cy={destPoint[1]} r="2.5" fill="#fff" />
+                {/* Destination label */}
+                <rect
+                  x={destPoint[0] - 45}
+                  y={destPoint[1] - 28}
+                  width="90"
+                  height="16"
+                  rx="4"
+                  fill="rgba(255,107,107,0.9)"
+                />
+                <text
+                  x={destPoint[0]}
+                  y={destPoint[1] - 17}
+                  textAnchor="middle"
+                  fill="#fff"
+                  fontSize="7"
+                  fontWeight="700"
+                  fontFamily="Inter, sans-serif"
+                >
+                  📍 DESTINATION
+                </text>
+                {/* Venue name label below dest dot */}
+                <rect
+                  x={destPoint[0] - 50}
+                  y={destPoint[1] + 10}
+                  width="100"
+                  height="16"
+                  rx="4"
+                  fill="rgba(17,24,39,0.9)"
+                  stroke="#6c5ce7"
+                  strokeWidth="0.8"
+                />
+                <text
+                  x={destPoint[0]}
+                  y={destPoint[1] + 21}
+                  textAnchor="middle"
+                  fill="#f0f2f5"
+                  fontSize="7.5"
+                  fontWeight="600"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {venueName || 'Venue'}
+                </text>
+              </g>
+            )}
+          </g>
+        )}
+
+        {/* ── Legend ── */}
+        <rect x="15" y="440" width="180" height="45" rx="6" fill="rgba(17,24,39,0.85)" stroke="#2e3a55" strokeWidth="0.8" />
         <rect x="25" y="453" width="8" height="8" rx="2" fill="url(#bldg-grad)" stroke="#2e3a55" strokeWidth="0.6" />
         <text x="38" y="461" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">Building</text>
         <rect x="85" y="453" width="8" height="8" rx="2" fill="url(#open-grad)" stroke="#2e4a48" strokeWidth="0.6" strokeDasharray="2 1" />
         <text x="98" y="461" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">Open area</text>
         <circle cx="29" cy="475" r="4" fill="#163828" opacity="0.6" />
         <text x="38" y="478" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">Greenery</text>
-        <line x1="85" y1="475" x2="98" y2="475" stroke="#232d42" strokeWidth="2" />
-        <text x="103" y="478" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">Path</text>
+        {/* Route legend */}
+        <line x1="85" y1="475" x2="105" y2="475" stroke="#6c5ce7" strokeWidth="3" strokeLinecap="round" />
+        <text x="110" y="478" fill="#505b78" fontSize="7" fontFamily="Inter, sans-serif">Route</text>
       </svg>
 
-      {/* ── Animated Pin ── */}
-      {pinX != null && pinY != null && (
+      {/* ── Animated Pin (HTML overlay for when no route data is available) ── */}
+      {pinX != null && pinY != null && !routePoints && (
         <>
-          {/* Pulsing ring */}
           <div
             className="campus-map__pin-ring"
             style={{ left: `${pinX}%`, top: `${pinY}%` }}
           />
-          {/* Pin icon */}
           <svg
             className="campus-map__pin"
             style={{ left: `${pinX}%`, top: `${pinY}%` }}
@@ -167,7 +287,6 @@ export default function CampusMap({ pinX, pinY, venueName }) {
             />
             <circle cx="12" cy="9" r="3" fill="#fff" />
           </svg>
-          {/* Venue label */}
           {venueName && (
             <div
               className="campus-map__pin-label"

@@ -22,7 +22,7 @@ export default function VenuePanel({ venue, onClose }) {
       <div className="venue-panel__body">
         {/* Map */}
         <div className="venue-panel__map-container">
-          <CampusMap pinX={venue.mapX} pinY={venue.mapY} venueName={venue.name} />
+          <CampusMap pinX={venue.mapX} pinY={venue.mapY} venueName={venue.name} venueId={venue.id} />
         </div>
 
         {/* Info grid */}

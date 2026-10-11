@@ -1,19 +1,55 @@
+/**
+ * EventCard.jsx – Modern Campus-Tech Event Card
+ *
+ * Clean white background, thin border, soft hover shadow, clear metadata:
+ * - Category badge (subtle tint)
+ * - Title & Organizer
+ * - Live status dot & Countdown
+ * - Date, Time & Venue name (building)
+ * - Short clamped description
+ * - Action: "How to reach →" + Save button
+ */
+
 import React from 'react';
 import { getStatus, countdown } from '../lib/time';
+import { getVenueById } from '../lib/storage';
 
-const CAT_STYLES = {
-  Tech:     { '--cat-bg': 'rgba(108,92,231,0.12)',  '--cat-color': '#6c5ce7' },
-  Cultural: { '--cat-bg': 'rgba(232,67,147,0.12)',  '--cat-color': '#e84393' },
-  Sports:   { '--cat-bg': 'rgba(0,184,148,0.12)',   '--cat-color': '#00b894' },
-  Workshop: { '--cat-bg': 'rgba(253,203,110,0.15)', '--cat-color': '#f39c12' },
-  Seminar:  { '--cat-bg': 'rgba(9,132,227,0.12)',   '--cat-color': '#0984e3' },
-  Other:    { '--cat-bg': 'rgba(99,110,114,0.12)',   '--cat-color': '#636e72' },
+const CAT_PALETTE = {
+  Tech: { bg: '#3DB8FF', text: '#111111' },       // Sky Cyan
+  Cultural: { bg: '#F24FBE', text: '#111111' },   // Acid Pink
+  Sports: { bg: '#FF9A3C', text: '#111111' },     // Tangerine
+  Workshop: { bg: '#FFE033', text: '#111111' },   // Sunbeam
+  Seminar: { bg: '#B07CFF', text: '#111111' },    // Electric Violet
+  Other: { bg: '#E5E2E1', text: '#111111' },      // Surface Muted
 };
+
+function formatEventTime(start, end) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  const isToday = new Date().toDateString() === startDate.toDateString();
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = tomorrow.toDateString() === startDate.toDateString();
+
+  let datePrefix = startDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (isToday) datePrefix = 'Today';
+  if (isTomorrow) datePrefix = 'Tomorrow';
+
+  const startTime = startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const endTime = endDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  return `${datePrefix} · ${startTime} – ${endTime}`;
+}
 
 export default function EventCard({ event, now, isSaved, onToggleSave, onReach, venueName }) {
   const status = getStatus(event, now);
   const countdownText = countdown(event, now);
-  const catStyle = CAT_STYLES[event.category] || CAT_STYLES.Other;
+  const catStyle = CAT_PALETTE[event.category] || CAT_PALETTE.Other;
+
+  const venue = event.venueId ? getVenueById(event.venueId) : null;
+  const displayVenue = venueName || (venue ? `${venue.name} (${venue.building})` : 'Campus Venue');
+  const timeFormatted = formatEventTime(event.start, event.end);
 
   const cardClass = [
     'event-card',
@@ -26,44 +62,73 @@ export default function EventCard({ event, now, isSaved, onToggleSave, onReach, 
 
   return (
     <article className={cardClass} id={`event-${event.id}`}>
-      {/* Top row: category + save */}
+      {/* Top Header: Category & Save Bookmark */}
       <div className="event-card__top-row">
-        <span className="event-card__category" style={catStyle}>
+        <span
+          className="event-card__category"
+          style={{
+            backgroundColor: catStyle.bg,
+            color: catStyle.text,
+          }}
+        >
           {event.category}
         </span>
+
         <button
+          type="button"
           className={`event-card__save-btn${isSaved ? ' event-card__save-btn--saved' : ''}`}
           onClick={() => onToggleSave(event.id)}
-          title={isSaved ? 'Unsave' : 'Save'}
+          title={isSaved ? 'Remove from saved' : 'Save event'}
           id={`save-${event.id}`}
+          aria-label={isSaved ? 'Saved event' : 'Save event'}
         >
           {isSaved ? '★' : '☆'}
         </button>
       </div>
 
-      {/* Title & organizer */}
-      <h3 className="event-card__title">{event.title}</h3>
-      <span className="event-card__organizer">by {event.organizer}</span>
+      {/* Title & Organizer */}
+      <div className="event-card__title-group">
+        <h3 className="event-card__title">{event.title}</h3>
+        <span className="event-card__organizer">by {event.organizer}</span>
+      </div>
 
-      {/* Description */}
+      {/* Status & Countdown Badge Row */}
+      <div className="event-card__status-banner">
+        <StatusBadge status={status} />
+        <span className="event-card__countdown">{countdownText}</span>
+      </div>
+
+      {/* Metadata: Time and Venue */}
+      <div className="event-card__meta-list">
+        <div className="event-card__meta-item">
+          <span className="event-card__meta-icon" aria-hidden="true">📅</span>
+          <span>{timeFormatted}</span>
+        </div>
+        <div className="event-card__meta-item">
+          <span className="event-card__meta-icon" aria-hidden="true">📍</span>
+          <span>{displayVenue}</span>
+        </div>
+      </div>
+
+      {/* Short Description */}
       {event.description && (
         <p className="event-card__desc">{event.description}</p>
       )}
 
-      {/* Footer: status + countdown + reach */}
+      {/* Footer: How to Reach */}
       <div className="event-card__footer">
-        <div className="event-card__status-row">
-          <StatusBadge status={status} />
-          <span className="event-card__countdown">{countdownText}</span>
-        </div>
-        {status !== 'ended' && (
+        {status !== 'ended' ? (
           <button
+            type="button"
             className="btn-reach"
             onClick={() => onReach(event.venueId)}
             id={`reach-${event.id}`}
           >
-            📍 How to reach
+            <span>📍 How to reach</span>
+            <span className="btn-reach__arrow">→</span>
           </button>
+        ) : (
+          <span className="event-card__ended-label">Event Completed</span>
         )}
       </div>
     </article>

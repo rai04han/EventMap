@@ -10,9 +10,9 @@ const TABS = [
 export default function TopNav({ activeTab, onNavigate, liveCount }) {
   return (
     <nav className="topnav" id="topnav">
-      <div className="topnav__brand">
-        <div className="topnav__brand-icon">⚡</div>
-        <span>CampusPulse</span>
+      <div className="topnav__brand" onClick={() => onNavigate('feed')}>
+        <div className="topnav__brand-icon">📍</div>
+        <span>EventMap</span>
       </div>
       <div className="topnav__tabs">
         {TABS.map((tab) => (

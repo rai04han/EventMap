@@ -16,7 +16,7 @@ function toLocalDatetime(date) {
   return local.toISOString().slice(0, 16);
 }
 
-export default function EventForm({ venues, onSubmit }) {
+export default function EventForm({ venues, onSubmit, initialOrganizer = '' }) {
   const now = new Date();
   const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
 
@@ -26,7 +26,7 @@ export default function EventForm({ venues, onSubmit }) {
     venueId: venues[0]?.id || '',
     start: toLocalDatetime(now),
     end: toLocalDatetime(inOneHour),
-    organizer: '',
+    organizer: initialOrganizer,
     description: '',
   });
 
@@ -54,7 +54,7 @@ export default function EventForm({ venues, onSubmit }) {
       venueId: venues[0]?.id || '',
       start: toLocalDatetime(new Date()),
       end: toLocalDatetime(new Date(Date.now() + 60 * 60 * 1000)),
-      organizer: '',
+      organizer: initialOrganizer,
       description: '',
     });
   };

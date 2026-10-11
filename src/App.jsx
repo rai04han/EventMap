@@ -73,7 +73,7 @@ export default function App() {
       case 'venues':
         return <Venues />;
       case 'organizer':
-        return <Organizer onEventAdded={refreshEvents} />;
+        return <Organizer onEventAdded={refreshEvents} events={events} />;
       case 'saved':
         return (
           <Saved

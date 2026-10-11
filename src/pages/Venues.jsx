@@ -29,6 +29,7 @@ export default function Venues() {
           pinX={selectedVenue ? selectedVenue.mapX : null}
           pinY={selectedVenue ? selectedVenue.mapY : null}
           venueName={selectedVenue ? selectedVenue.name : null}
+          venueId={selectedVenue ? selectedVenue.id : null}
         />
       </div>
 
